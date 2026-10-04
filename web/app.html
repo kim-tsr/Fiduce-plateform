@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fiduce — Réconciliation</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="app">
+  <div class="shell">
+    <!-- Barre latérale -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="brand on-dark"><span class="brand-mark">F</span> Fiduce</div>
+        <nav class="nav">
+          <a class="nav-item is-active" href="#comptes">Comptes &amp; soldes</a>
+          <a class="nav-item" href="#ecritures">Écritures</a>
+          <a class="nav-item" href="#rapports">Rapports</a>
+        </nav>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="avatar">?</div>
+        <div class="who-block">
+          <span id="who" class="who"></span>
+          <span class="who-sub">Connecté</span>
+        </div>
+        <button id="logout" class="icon-btn" title="Se déconnecter" aria-label="Se déconnecter">⏻</button>
+      </div>
+    </aside>
+
+    <!-- Espace de travail -->
+    <main class="workspace">
+      <header class="ws-head">
+        <div>
+          <p class="eyebrow">Tableau de bord</p>
+          <h1>Réconciliation des paiements</h1>
+        </div>
+        <button id="refresh-all" class="ghost">Actualiser</button>
+      </header>
+
+      <!-- Indicateurs -->
+      <section class="kpis">
+        <article class="kpi">
+          <span class="kpi-label">Solde cumulé</span>
+          <span class="kpi-value num" id="kpi-balance">…</span>
+        </article>
+        <article class="kpi">
+          <span class="kpi-label">Rapprochées</span>
+          <span class="kpi-value num is-ok" id="kpi-matched">…</span>
+        </article>
+        <article class="kpi">
+          <span class="kpi-label">Non rapprochées</span>
+          <span class="kpi-value num is-err" id="kpi-unmatched">…</span>
+        </article>
+        <article class="kpi">
+          <span class="kpi-label">En attente</span>
+          <span class="kpi-value num is-warn" id="kpi-pending">…</span>
+        </article>
+      </section>
+
+      <div class="cols">
+        <section class="card" id="comptes">
+          <div class="card-head">
+            <h2>Comptes &amp; soldes</h2>
+            <button id="refresh-accounts" class="ghost small">Rafraîchir</button>
+          </div>
+          <table id="accounts-table">
+            <thead><tr><th>Code</th><th>Libellé</th><th class="num">Solde</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h2>Nouvelle écriture</h2></div>
+          <form id="entry-form" class="stack">
+            <div class="row">
+              <label>Compte
+                <select name="account_code" id="entry-account"></select>
+              </label>
+              <label>Sens
+                <select name="side"><option value="debit">Débit</option><option value="credit">Crédit</option></select>
+              </label>
+            </div>
+            <div class="row">
+              <label>Montant (centimes)<input name="amount_cents" type="number" min="1" value="10000" required /></label>
+              <label>Référence<input name="reference" placeholder="FAC-2024-010" /></label>
+            </div>
+            <label>Référence externe (relevé bancaire)
+              <input name="external_ref" placeholder="BANK-…  (vide = non rapprochée)" />
+            </label>
+            <button type="submit">Enregistrer l'écriture</button>
+            <p id="entry-msg" class="msg" hidden></p>
+          </form>
+        </section>
+      </div>
+
+      <section class="card" id="ecritures">
+        <div class="card-head">
+          <h2>Écritures</h2>
+          <div class="actions">
+            <span id="reconcile-status" class="badge" hidden></span>
+            <button id="reconcile-btn">Lancer une réconciliation</button>
+          </div>
+        </div>
+        <table id="entries-table">
+          <thead><tr>
+            <th>Compte</th><th>Sens</th><th class="num">Montant</th>
+            <th>Référence</th><th>Réf. externe</th><th>Statut</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section class="card" id="rapports">
+        <div class="card-head">
+          <h2>Rapports</h2>
+          <form id="report-form" class="inline">
+            <select name="type">
+              <option value="balance_summary">Synthèse des soldes</option>
+              <option value="reconciliation_audit">Audit de réconciliation</option>
+              <option value="entries_export">Export des écritures</option>
+            </select>
+            <button type="submit">Demander</button>
+          </form>
+        </div>
+        <table id="reports-table">
+          <thead><tr><th>Type</th><th>Statut</th><th>Demandé</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <pre id="report-result" class="result" hidden></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

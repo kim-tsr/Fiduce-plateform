@@ -1,0 +1,145 @@
+# Orchestration locale de la plateforme Fiduce.
+# But : prouver que l'application tourne de bout en bout AVANT toute industrialisation
+# (Terraform / Kubernetes / CI-CD / GitOps). Ce fichier n'est PAS un livrable de prod.
+#
+#   make up        # démarre tout
+#   Frontend       : http://localhost:8080
+#   Traces (Jaeger): http://localhost:16686
+#   Métriques (Prom): http://localhost:9090
+#   API (gateway)  : http://localhost:8081
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://fiduce:fiduce@postgres:5432/fiduce
+  REDIS_URL: redis://redis:6379/0
+  NATS_URL: nats://nats:4222
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+  LOG_LEVEL: INFO
+
+x-healthcheck-http: &healthcheck-http
+  interval: 10s
+  timeout: 3s
+  retries: 10
+  start_period: 20s
+
+services:
+  # --- Dépendances applicatives (stateful) ---------------------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fiduce
+      POSTGRES_PASSWORD: fiduce
+      POSTGRES_DB: fiduce
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+      - pg-data:/var/lib/postgresql/data
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fiduce -d fiduce"]
+      <<: *healthcheck-http
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      <<: *healthcheck-http
+
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports: ["4222:4222", "8222:8222"]
+
+  # --- Observabilité (dev) -------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # UI
+      - "4318:4318"     # OTLP/HTTP
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./deploy/local/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+
+  # --- Microservices -------------------------------------------------------
+  auth:
+    build: { context: ., dockerfile: services/auth/Dockerfile }
+    environment:
+      <<: *app-env
+      DEMO_SEED: "true"
+      DEMO_PASSWORD: demo-password
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      <<: *healthcheck-http
+
+  ledger:
+    build: { context: ., dockerfile: services/ledger/Dockerfile }
+    environment: { <<: *app-env }
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      nats: { condition: service_started }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      <<: *healthcheck-http
+
+  reporting:
+    build: { context: ., dockerfile: services/reporting/Dockerfile }
+    environment: { <<: *app-env }
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_started }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      <<: *healthcheck-http
+
+  worker:
+    build: { context: ., dockerfile: services/worker/Dockerfile }
+    environment: { <<: *app-env }
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      nats: { condition: service_started }
+    restart: unless-stopped
+    # Le worker peut être répliqué pour partager la charge (queue group NATS) :
+    #   docker compose up -d --scale worker=3
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      <<: *healthcheck-http
+
+  gateway:
+    build: { context: ., dockerfile: services/gateway/Dockerfile }
+    environment:
+      <<: *app-env
+      JWKS_URL: http://auth:8000/.well-known/jwks.json
+      AUTH_SERVICE_URL: http://auth:8000
+      LEDGER_SERVICE_URL: http://ledger:8000
+      REPORTING_SERVICE_URL: http://reporting:8000
+    depends_on:
+      auth: { condition: service_started }
+      ledger: { condition: service_started }
+      reporting: { condition: service_started }
+    ports: ["8081:8080"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      <<: *healthcheck-http
+
+  web:
+    build: { context: ./web }
+    depends_on:
+      gateway: { condition: service_started }
+    ports: ["8080:8080"]
+    restart: unless-stopped
+
+volumes:
+  pg-data:

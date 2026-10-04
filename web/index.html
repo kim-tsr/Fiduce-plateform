@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fiduce — Connexion</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth">
+  <main class="auth-split">
+    <!-- Panneau marque + signature « réconciliation » -->
+    <aside class="auth-aside">
+      <div class="brand on-dark"><span class="brand-mark">F</span> Fiduce</div>
+
+      <div class="auth-pitch">
+        <h1>Le rapprochement des paiements, <em>au cordeau.</em></h1>
+        <p>Confrontez chaque écriture comptable au relevé bancaire et soldez vos lignes en confiance.</p>
+      </div>
+
+      <!-- Deux colonnes qui se rapprochent : écriture ↔ relevé -->
+      <div class="recon" aria-hidden="true">
+        <div class="recon-head"><span>Écriture</span><span>Relevé</span></div>
+        <ul>
+          <li><span class="ref">FAC-2024-001</span><span class="link matched"></span><span class="ref">BANK-779001</span></li>
+          <li><span class="ref">FAC-2024-001</span><span class="link matched"></span><span class="ref">BANK-779001</span></li>
+          <li><span class="ref">FAC-2024-002</span><span class="link pending"></span><span class="ref muted">en attente</span></li>
+          <li><span class="ref">FAC-2024-003</span><span class="link pending"></span><span class="ref muted">en attente</span></li>
+        </ul>
+      </div>
+
+      <p class="auth-foot">Plateforme de réconciliation multi-tenant</p>
+    </aside>
+
+    <!-- Formulaire -->
+    <section class="auth-form">
+      <div class="auth-form-inner">
+        <p class="eyebrow">Espace de réconciliation</p>
+        <h2>Connexion</h2>
+        <p class="auth-sub">Accédez au tableau de bord de votre organisation.</p>
+
+        <form id="login-form" novalidate>
+          <label>Organisation
+            <input name="tenant" list="tenants" value="acme" autocomplete="off" required />
+            <datalist id="tenants"><option value="acme"><option value="globex"></datalist>
+          </label>
+          <label>Identifiant
+            <input name="username" value="alice" autocomplete="username" required />
+          </label>
+          <label>Mot de passe
+            <input name="password" type="password" value="demo-password" autocomplete="current-password" required />
+          </label>
+          <button id="login-submit" type="submit">
+            <span class="btn-label">Se connecter</span>
+            <span class="btn-spin" aria-hidden="true"></span>
+          </button>
+          <p id="login-error" class="error" hidden></p>
+        </form>
+
+        <p class="hint">Démo : <code>acme/alice</code> · <code>acme/bob</code> · <code>globex/carol</code> — mot de passe <code>demo-password</code></p>
+      </div>
+    </section>
+  </main>
+
+  <script src="api.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>
