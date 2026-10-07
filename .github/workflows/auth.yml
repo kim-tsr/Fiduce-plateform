@@ -8,7 +8,7 @@ on:
       - "pyproject.toml"
       - ".github/workflows/auth.yml"
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "services/auth/**"
       - "libs/**"
@@ -26,7 +26,7 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 
@@ -34,6 +34,6 @@ jobs:
         run: pipx run ruff==0.16.8 check services/auth libs
 
       - name: Lint Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387
         with:
           dockerfile: services/auth/Dockerfile
