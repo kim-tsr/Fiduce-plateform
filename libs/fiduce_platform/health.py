@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from starlette.responses import JSONResponse
 
@@ -17,7 +17,11 @@ logger = logging.getLogger(__name__)
 ReadinessCheck = Callable[[], Awaitable[bool]]
 
 
-def register_health(app, settings, readiness: list[tuple[str, ReadinessCheck]] | None = None) -> None:
+def register_health(
+    app,
+    settings,
+    readiness: list[tuple[str, ReadinessCheck]] | None = None
+    ) -> None:
     checks = readiness or []
 
     @app.get("/healthz", include_in_schema=False)

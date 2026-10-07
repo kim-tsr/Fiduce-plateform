@@ -8,10 +8,10 @@ import redis.asyncio as redis
 
 logger = logging.getLogger(__name__)
 
-_client: "redis.Redis | None" = None
+_client: redis.Redis | None = None
 
 
-async def init_cache(settings) -> "redis.Redis":
+async def init_cache(settings) -> redis.Redis:
     global _client
     if _client is not None:
         return _client
@@ -31,7 +31,7 @@ async def init_cache(settings) -> "redis.Redis":
     raise RuntimeError("Connexion Redis impossible")
 
 
-def get_cache() -> "redis.Redis":
+def get_cache() -> redis.Redis:
     if _client is None:
         raise RuntimeError("Cache non initialisé (init_cache non appelé)")
     return _client

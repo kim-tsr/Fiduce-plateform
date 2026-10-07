@@ -5,7 +5,7 @@ import logging
 from contextlib import asynccontextmanager
 
 import jwt
-from fastapi import Depends, Header, HTTPException
+from fastapi import Header, HTTPException
 from pydantic import BaseModel
 
 from fiduce_platform.app_factory import build_app

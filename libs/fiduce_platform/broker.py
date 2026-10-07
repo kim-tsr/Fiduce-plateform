@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 import nats
 from nats.js.api import ConsumerConfig, RetentionPolicy, StreamConfig

@@ -9,7 +9,7 @@ import json
 import logging
 import sys
 from contextvars import ContextVar
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Contexte propagé par requête (renseigné par le middleware).
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
@@ -35,7 +35,7 @@ def _current_trace_id() -> str:
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "service": _SERVICE,
