@@ -1,0 +1,113 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      services: ${{ steps.services.outputs.list }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - id: filter
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        with:
+          filters: |
+            ci: &ci
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/_image.yml'
+            python: &python
+              - *ci
+              - 'libs/**'
+              - 'pyproject.toml'
+            auth:
+              - *python
+              - 'services/auth/**'
+            gateway:
+              - *python
+              - 'services/gateway/**'
+            ledger:
+              - *python
+              - 'services/ledger/**'
+            reporting:
+              - *python
+              - 'services/reporting/**'
+            worker:
+              - *python
+              - 'services/worker/**'
+            web:
+              - *ci
+              - 'web/**'
+      - name: Ne garder que les services
+        id: services
+        env:
+          CHANGES: ${{ steps.filter.outputs.changes }}
+        run: |
+          echo "list=$(jq -c '[.[] | select(. != "ci" and . != "python")]' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Détection de secrets (Gitleaks)
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+  sast:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: SAST (Semgrep)
+        run: >
+          pipx run semgrep==1.179.0 scan
+          --config p/python
+          --config p/owasp-top-ten
+          --error
+          --metrics=off
+          services/auth libs
+  image:
+    needs: [changes, secrets, sast]
+    if: needs.changes.outputs.services != '[]' && needs.changes.outputs.services != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_image.yml
+    with:
+      service: ${{ matrix.service }}
+      context: ${{ matrix.service == 'web' && 'web' || '.' }}
+      dockerfile: ${{ matrix.service == 'web' && 'web/Dockerfile' || format('services/{0}/Dockerfile', matrix.service) }}
+      push: ${{ github.event_name == 'push' }}    
+       
+  ci-ok:
+    if: always()
+    needs: [secrets, sast, image]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Tous les jobs requis ont réussi
+        run: |
+          [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "false" ]]   
