@@ -101,4 +101,13 @@ jobs:
       service: ${{ matrix.service }}
       context: ${{ matrix.service == 'web' && 'web' || '.' }}
       dockerfile: ${{ matrix.service == 'web' && 'web/Dockerfile' || format('services/{0}/Dockerfile', matrix.service) }}
-      push: ${{ github.event_name == 'push' }}        
+      push: ${{ github.event_name == 'push' }}    
+       
+  ci-ok:
+    if: always()
+    needs: [secrets, sast, image]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Tous les jobs requis ont réussi
+        run: |
+          [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "false" ]]   
