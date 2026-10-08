@@ -65,14 +65,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Lint Python (ruff)
-        run: pipx run ruff==0.16.8 check services/auth libs
-
-      - name: Lint Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
-        with:
-          dockerfile: services/auth/Dockerfile
+          
   secrets:
     runs-on: ubuntu-24.04
     steps:

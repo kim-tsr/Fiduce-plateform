@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: docker
+    directories:
+      - /web
+      - /services/*
+    schedule:
+      interval: weekly
+    groups:
+      images-de-base:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directories:
+      - /services/*
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
