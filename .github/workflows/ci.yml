@@ -59,13 +59,7 @@ jobs:
           CHANGES: ${{ steps.filter.outputs.changes }}
         run: |
           echo "list=$(jq -c '[.[] | select(. != "ci" and . != "python")]' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
-  lint:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          
+
   secrets:
     runs-on: ubuntu-24.04
     steps:
@@ -93,7 +87,7 @@ jobs:
           --metrics=off
           services/auth libs
   image:
-    needs: [changes, lint, secrets, sast]
+    needs: [changes, secrets, sast]
     if: needs.changes.outputs.services != '[]' && needs.changes.outputs.services != ''
     strategy:
       fail-fast: false
