@@ -19,13 +19,13 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      services: ${{ steps.filter.outputs.changes }}
+      services: ${{ steps.services.outputs.changes }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
       - id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
         with:
           filters: |
             ci: &ci
@@ -53,6 +53,12 @@ jobs:
             web:
               - *ci
               - 'web/**'
+      - name: Ne garder que les services
+        id: services
+        env:
+          CHANGES: ${{ steps.filter.outputs.changes }}
+        run: |
+          echo "list=$(jq -c '[.[] | select(. != "ci" and . != "python")]' <<< "$CHANGES")" >> "$GITHUB_OUTPUT"
   lint:
     runs-on: ubuntu-24.04
     steps:
@@ -93,22 +99,6 @@ jobs:
           --error
           --metrics=off
           services/auth libs
-  sca:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: SCA (Trivy, dépendances Python)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: 'fs'
-          scan-ref: 'services/auth'
-          scanners: 'vuln'
-          severity: 'HIGH,CRITICAL'
-          ignore-unfixed: true
-          exit-code: '1'
   image:
     needs: [changes, lint, secrets, sast]
     if: needs.changes.outputs.services != '[]' && needs.changes.outputs.services != ''

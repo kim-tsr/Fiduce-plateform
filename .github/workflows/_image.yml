@@ -32,6 +32,22 @@ jobs:
         outputs:
           digest: ${{ steps.push.outputs.digest }}
         steps:
+        - name: Dossier du service
+          id: src
+          env:
+            DOCKERFILE: ${{ inputs.dockerfile }}
+          run: echo "dir=$(dirname "$DOCKERFILE")" >> "$GITHUB_OUTPUT"
+
+        - name: SCA (Trivy, dépendances du service)
+          uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+          with:
+            scan-type: fs
+            scan-ref: ${{ steps.src.outputs.dir }}
+            scanners: vuln
+            version: ${{ env.TRIVY_VERSION }}
+            severity: HIGH,CRITICAL
+            ignore-unfixed: true
+            exit-code: "1"
         - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
           with:
             persist-credentials: false
@@ -45,7 +61,7 @@ jobs:
             images: ${{ env.IMAGE }}
             tags: |
                 type=sha,format=long
-                
+
         - name: Build unique (chargement local)
           uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
           with:
@@ -63,7 +79,8 @@ jobs:
         - name: Scan de l'image (Trivy)
           uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
           with:
-            image-ref: ${{ env.IMAGE }}
+            image-ref: ${{ steps.meta.outputs.tags }}
+            version: ${{ env.TRIVY_VERSION }}
             severity: 'HIGH,CRITICAL'
             ignore-unfixed: true
             exit-code: '1'
