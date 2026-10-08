@@ -9,4 +9,4 @@ opentelemetry-instrumentation-httpx==0.66b1
 asyncpg==0.30.0
 pyjwt[crypto]==2.14.0
 cryptography==50.0.0
-argon2-cffi==23.1.0
+argon2-cffi==25.1.0
