@@ -93,6 +93,14 @@ jobs:
             ignore-unfixed: true
             exit-code: '1'
 
+        - name: Connexion à GHCR
+          if: github.event_name == 'push'
+          uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+            
         - name: Push de l'image vérifiée
           id: push
           if: inputs.push
