@@ -98,10 +98,15 @@ jobs:
           if: inputs.push
           uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
           with:
-            context: .
+            context: ${{ inputs.context }}
+            file: ${{ inputs.dockerfile }}
+            platforms: linux/amd64
             push: true
             tags: ${{ steps.meta.outputs.tags }}
             labels: ${{ steps.meta.outputs.labels }}
+            cache-from: type=gha,scope=${{ inputs.service }}
+            provenance: false
+            sbom: false
 
         - name: Provenance (attestation GitHub, SLSA)
           if: inputs.push
@@ -117,3 +122,20 @@ jobs:
             GH_TOKEN: ${{ github.token }}
             SUBJECT: ${{ env.IMAGE }}@${{ steps.push.outputs.digest }}
           run: gh attestation verify "oci://$SUBJECT" --repo "${{ github.repository }}"
+        
+        - name: Générer le SBOM (CycloneDX via Trivy)
+          if: inputs.push
+          uses: aquasecurity/trivy-action@v0.36.0
+          with:
+            image-ref: ${{ steps.meta.outputs.tags }}
+            format: 'cyclonedx-json'
+            output: 'sbom.json'
+
+        - name: Attester le SBOM (Signé via Sigstore)
+          if: inputs.push
+          uses: actions/attest-sbom@v2
+          with:
+            subject-name: ${{ env.IMAGE }}
+            subject-digest: ${{ steps.push.outputs.digest }}
+            sbom-path: 'sbom.json'
+            push-to-registry: true
