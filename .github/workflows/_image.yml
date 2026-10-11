@@ -125,7 +125,7 @@ jobs:
         
         - name: Générer le SBOM (CycloneDX via Trivy)
           if: inputs.push
-          uses: aquasecurity/trivy-action@v0.36.0
+          uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
           with:
             image-ref: ${{ steps.meta.outputs.tags }}
             format: 'cyclonedx-json'
@@ -133,7 +133,7 @@ jobs:
 
         - name: Attester le SBOM (Signé via Sigstore)
           if: inputs.push
-          uses: actions/attest-sbom@v2
+          uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b # v2.4.0
           with:
             subject-name: ${{ env.IMAGE }}
             subject-digest: ${{ steps.push.outputs.digest }}
