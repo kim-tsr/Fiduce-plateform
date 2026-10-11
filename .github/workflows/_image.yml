@@ -76,6 +76,7 @@ jobs:
             file: ${{ inputs.dockerfile }}
             platforms: linux/amd64
             load: true
+            push: false
             tags: ${{ steps.meta.outputs.tags }}
             labels: ${{ steps.meta.outputs.labels }}
             cache-from: type=gha,scope=${{ inputs.service }}
@@ -92,19 +93,27 @@ jobs:
             ignore-unfixed: true
             exit-code: '1'
 
-        - name: Connexion à GHCR
-          if: github.event_name == 'push'
-          uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
-
         - name: Push de l'image vérifiée
           id: push
-          if: github.event_name == 'push'
-          run: |
-            TAG="${{ steps.meta.outputs.tags }}"
-            docker push "$TAG"
-            DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$TAG" | awk -F'@' '{print $2}')
-            echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          if: inputs.push
+          uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+          with:
+            context: .
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+
+        - name: Provenance (attestation GitHub, SLSA)
+          if: inputs.push
+          uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+          with:
+            subject-name: ${{ env.IMAGE }}
+            subject-digest: ${{ steps.push.outputs.digest }}
+            push-to-registry: true
+
+        - name: Vérifier la provenance
+          if: inputs.push
+          env:
+            GH_TOKEN: ${{ github.token }}
+            SUBJECT: ${{ env.IMAGE }}@${{ steps.push.outputs.digest }}
+          run: gh attestation verify "oci://$SUBJECT" --repo "${{ github.repository }}"
