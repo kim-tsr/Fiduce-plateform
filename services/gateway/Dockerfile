@@ -3,12 +3,12 @@
 # Contexte de build attendu : RACINE du dépôt.
 #   docker build -f services/gateway/Dockerfile -t fiduce/gateway .
 
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 WORKDIR /build
 COPY services/gateway/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app:/app/libs
